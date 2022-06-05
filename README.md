@@ -11,3 +11,9 @@ This is not a standalone project - actual DNS server implementation is used from
 ```bash
 go install github.com/dee-kryvenko/host-resolver-dns@latest
 ```
+
+## Use
+
+By default, it is started as a desktop app. It uses system tray icon and can be stopped from there. For GUI elements to work, it should be installed with CGO: `CGO_ENABLED=1 go install github.com/dee-kryvenko/host-resolver-dns@latest`.
+
+To use it in headless mode - add `--headless` flag. No CGO required to use it in headless mode.

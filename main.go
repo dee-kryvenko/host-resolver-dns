@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/getlantern/systray"
+	"github.com/getlantern/systray/example/icon"
 	"github.com/lima-vm/lima/pkg/hostagent/dns"
 	"github.com/spf13/cobra"
 )
@@ -40,6 +42,11 @@ var (
 				return err
 			}
 
+			headless, err := cmd.Flags().GetBool("headless")
+			if err != nil {
+				return err
+			}
+
 			hosts := make(map[string]string)
 			for _, host := range _hosts {
 				h := strings.SplitN(host, "=", 2)
@@ -49,13 +56,37 @@ var (
 				hosts[h[0]] = h[1]
 			}
 
-			server, err := dns.Start(udp, tcp, ipv6, hosts)
+			c := make(chan struct{})
+			if !headless {
+				go func() {
+					<-c
+					systray.Quit()
+				}()
+			}
+
+			var server *dns.Server
+
+			server, err = dns.Start(udp, tcp, ipv6, hosts)
 			defer server.Shutdown()
 
 			fmt.Printf("DNS started (udp=%v, tcp=%v, ipv6=%v, hosts=%s)\n", udp, tcp, ipv6, hosts)
 
-			c := make(chan struct{})
-			<-c
+			if headless {
+				<-c
+			} else {
+				systray.Run(func() {
+					systray.SetIcon(icon.Data)
+					systray.SetTooltip("DNS Server using host system resolver")
+					mQuit := systray.AddMenuItem("Exit", "Stop this DNS server")
+					mQuit.SetIcon(icon.Data)
+					mQuit.ClickedCh = c
+				}, func() {
+					if server != nil {
+						fmt.Printf("Shutting down...\n")
+						server.Shutdown()
+					}
+				})
+			}
 
 			return err
 		},
@@ -63,8 +94,9 @@ var (
 )
 
 func init() {
-	rootCmd.Flags().IntP("udp", "u", 53, "UDP port number")
-	rootCmd.Flags().IntP("tcp", "t", 53, "TCP port number")
+	rootCmd.Flags().IntP("udp", "u", 16237, "UDP port number")
+	rootCmd.Flags().IntP("tcp", "t", 16237, "TCP port number")
 	rootCmd.Flags().BoolP("ipv6", "6", false, "Enable IPv6")
 	rootCmd.Flags().StringSlice("hosts", []string{}, "Additional hosts to resolve")
+	rootCmd.Flags().Bool("headless", false, "Enable headless mode")
 }
