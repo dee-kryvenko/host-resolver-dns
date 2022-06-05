@@ -17,3 +17,12 @@ go install github.com/dee-kryvenko/host-resolver-dns@latest
 By default, it is started as a desktop app. It uses system tray icon and can be stopped from there. For GUI elements to work, it should be installed with CGO: `CGO_ENABLED=1 go install github.com/dee-kryvenko/host-resolver-dns@latest`.
 
 To use it in headless mode - add `--headless` flag. No CGO required to use it in headless mode.
+
+### QEMU
+
+In order to use a DNS server on a typical port 53 - set up port forwarding with iptables:
+
+```bash
+sudo iptables -t nat -A PREROUTING -d "10.0.2.2" -p udp --dport 53 -j DNAT --to-destination "10.0.2.2:16237"
+sudo iptables -t nat -A OUTPUT -d "10.0.2.2" -p udp --dport 53 -j DNAT --to-destination "10.0.2.2:16237"
+```
